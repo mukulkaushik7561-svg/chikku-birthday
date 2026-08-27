@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ff9eb5">
+  <title>CHIKKU — Birthday</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Caveat:wght@500;600;700&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="depth.css">
+  <link rel="stylesheet" href="depth-fixes.css">
+</head>
+<body>
+  <div class="confetti-layer" aria-hidden="true"></div>
+  <main>
+    <section class="gate screen" id="gate" aria-labelledby="gate-title">
+      <div class="corner-cake">🎂</div><div class="heart-heart">♥</div>
+      <div class="gate-card">
+        <span class="tiny-bow">🎀</span>
+        <p id="gate-title">Psst... this isn't for everyone 👀</p>
+        <h1>Only CHIKKU is allowed in here. 🎀</h1>
+        <form id="password-form" novalidate>
+          <label for="password">the secret word</label>
+          <div class="password-row"><input id="password" type="password" autocomplete="current-password" required><button type="submit">unlock ✦</button></div>
+          <p class="gate-error" id="gate-error" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <section class="opening screen hidden" id="opening" tabindex="-1" aria-label="Opening gift">
+      <span class="float deco-one">✦</span><span class="float deco-two">♥</span><span class="float deco-three">✿</span>
+      <p class="opening-copy">after wandering around across all the gifts i came to this please open this cute gift from my side</p>
+      <p class="tap-note">tap anywhere</p>
+      <button class="gift" id="gift" aria-label="Open the birthday gift" hidden>
+        <span class="gift-lid"><i></i></span><span class="gift-box"><i></i><b>🎂</b></span><span class="gift-bow">🎀</span>
+      </button>
+    </section>
+
+    <div id="site" class="hidden">
+      <section class="hero section" id="hero">
+        <div class="sticker cake-left">🎂</div><div class="sticker cake-right">🍰</div><div class="sticker bow">🎀</div>
+        <span class="spark s1">✦</span><span class="spark s2">✦</span><span class="spark s3">♥</span>
+        <p class="eyebrow">24 october ✦ a day for someone very special</p>
+        <h1 class="hero-title">A very very very Happiest Bithday To My Bestestestestest Friend, CHIKKU</h1>
+        <p class="hero-tap-cue">tap anywhere to continue ✦</p>
+      </section>
+
+      <section class="song-section section" id="song">
+        <div class="section-label">a song for the birthday girl</div>
+        <div class="music-layout">
+          <div class="record-wrap" aria-hidden="true"><div class="record"><span>✦</span></div></div>
+          <div class="music-note"><span class="music-sticker">♫</span><h2>Arz Kiya Hai</h2><p>— Anuv Jain</p><button id="music-toggle" class="play-button" aria-expanded="false">▶ <span>play the song</span></button><p class="music-help">The official player opens after your click.</p></div>
+        </div>
+        <div id="spotify-player" class="spotify-wrap" hidden>
+          <iframe title="Arz Kiya Hai by Anuv Jain on Spotify" src="https://open.spotify.com/embed/track/1bMkimTb47umgNP6xCi4A1?utm_source=generator" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        </div>
+      </section>
+
+      <section class="jokes section" id="jokes"><span class="sticker star-sticker">⭐</span><h2>Inner Jokes</h2><div class="joke-grid"><article class="note note-pink">Humari jodi dekh ke to kayi log kale pad gye <span>😌</span></article><article class="note note-yellow">bas kitne padhe gi kux khud se bhi yaad kar le itna time nhi h mere pe ki tere uper lagaunga <span>🤨</span></article></div></section>
+
+      <section class="memories section" id="memories"><span class="tape tape-one"></span><span class="tape tape-two"></span><h2>Our Memories</h2><article class="memory-letter">Aaj tera birthday hei to socha kux teri aur meri purai yaadein taaza kar lu, bas meri battion ko padhiyo mat unhe remind kariyo. yaad h apni class 10th ka time jab daksh mere sath ladai karta tha but still mere pas tera support tha bhai vo bhi kya din the remember kaise me tere liye chiji lata tha ha vo baat alag aadhe paise hemant ke bhi lagte the but still yaar apne jab boards khatam hue the tab hum kitne kush the bhai yaar yaad ho to apna snap pe group bhi tha i just fucking remember those days yaar uske baad kya phasi thi tu vo to shi tune ek itna ccha friend bana rakha tha nhi to kaha milte h aise lag aaj kal duniya me aur tera kand hone se pehle yaad h tu mere se class me hupp!!! bolne par naraj ho gyi thi oo bhai vo din to jindgi me kabhi bhula nhi paunga bhaisaabh meri satak li thi tujhe manane me aur ab garmi ki chuttiyon se pehle kya fielding set karvai thi sabhi ki mujhe to abhi bhi samaj nhi ye ladkiya tujhe bol kaise deti h but stilll pata nhi garmiyo ki chuttiyon me kiske under me padhke ayi thi puri change yaar par aache dost vo thodi hote h jo badalte nhi balki vo dono badalte h but stilll ek dusre ko choose karte h and you still choose me and now for your pretteist birthday i am making this..... this isnt an end this is an beginning of memories i hope we create more....... Once again an happiest birthday to you, CHHIKKKKKKKKKKKKKKKUUUUUUUUUUUU............</article></section>
+
+      <section class="photos section" id="photos"><h2>Our Photos</h2><p class="photo-intro">Itna excited kya ho rhi h photoes dekhne ke liye mene bus me mangi thi jab tune di.....</p><div class="polaroids"><figure class="polaroid p1"><div class="photo-placeholder">add photo here</div><figcaption>future memory ✦</figcaption></figure><figure class="polaroid p2"><div class="photo-placeholder">add photo here</div><figcaption>future memory ✦</figcaption></figure><figure class="polaroid p3"><div class="photo-placeholder">add photo here</div><figcaption>future memory ✦</figcaption></figure></div></section>
+
+      <section class="birthday-gift section" id="birthday-gift"><div class="gift-sticker">🎁</div><h2>Your Birthday Gift</h2><p>Madam ji what are you looking for I had already given it to you remember....</p><span class="little-arrow">keep going ↓</span></section>
+
+      <section class="surprise section" id="surprise"><div class="popup" id="surprise-popup" aria-live="polite">Wait... you really thought that was everything? 👀</div><button class="reveal-surprise" id="reveal-surprise">okay okay, show me!</button><div class="turning hidden" id="turning"><span>🎈</span><h2>CHIKKU, YOU'RE TURNING 16!!! 🎂🎀</h2><span>🎈</span></div></section>
+
+      <section class="good-things section" id="good-things"><h2>16 Good Things I Like About You Most</h2><div class="things"><div><b>1.</b> "Your thoughts."</div><div><b>2.</b> "Your kindness."</div><div><b>3.</b> "Your scolding."</div><div><b>4.</b> "Your love toward me."</div><div><b>5.</b> "Your cuteness."</div><div><b>6.</b> "Your hands."</div><div class="ellipsis">⋆<br>⋆<br>⋆</div><div class="you-card"><b>16.</b> "YOU!!!"</div></div></section>
+
+      <section class="twist section" id="twist"><p>Ohhh... you still haven't found it? 👀</p><p>Look a little closer. 👀</p><button id="twist-reveal" class="ribbon-button">pull the ribbon</button><div id="twist-answer" class="twist-answer hidden"><span>🎁</span><strong>The website itself is the birthday gift.</strong><span>🎂</span></div></section>
+
+      <section class="memory-sky section" id="memory-sky"><div class="cloud c1"></div><div class="cloud c2"></div><span class="sky-cake">🎂</span><div class="stars" aria-hidden="true"></div><div class="sky-content"><p>the little stars are waiting for the next memories</p><button id="final-button" class="final-button">one last thing ✦</button></div></section>
+    </div>
+    <section id="final" class="final screen hidden" tabindex="-1"><span>🎂</span><span>🎀</span><span>♥</span><h2>THIS CUTE LITTLE WEBSITE IS JUST AN DEMO OF MY LOVE ONCE AGAIN! AN VERY HAPPIEST BIRTHDAY TO YOU MY ONLY AND DEAR FRIEND CHIKKUU........</h2><div class="final-sparkles">✦ ✧ ✦ ✧ ✦</div></section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
