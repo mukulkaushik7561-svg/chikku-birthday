@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100">
+<rect width="900" height="1100" fill="#e8dfd2"/>
+<path d="M0 0h900v1100H0z" fill="url(#g)" opacity=".45"/>
+<defs><pattern id="g" width="42" height="42" patternUnits="userSpaceOnUse"><path d="M42 0H0v42" fill="none" stroke="#98b2aa" stroke-width="1.2" opacity=".55"/></pattern></defs>
+<rect x="85" y="90" width="730" height="790" rx="22" fill="#f7f0e6" stroke="#9a8c85" stroke-width="8" stroke-dasharray="18 18"/>
+<circle cx="450" cy="420" r="110" fill="#efd1d9"/>
+<path d="M373 420c0-46 36-83 79-83s79 37 79 83-36 83-79 83-79-37-79-83Z" fill="#f8e8e4"/>
+<path d="M337 718c66-101 167-101 232 0" fill="none" stroke="#83a99c" stroke-width="23" stroke-linecap="round"/>
+<text x="450" y="970" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" fill="#6a5d62">replace with your photo 02</text>
+</svg>
