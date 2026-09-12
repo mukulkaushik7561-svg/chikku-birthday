@@ -17,6 +17,7 @@ gateForm.addEventListener("submit", (event) => {
     experience.classList.remove("is-hidden");
     experience.setAttribute("aria-hidden", "false");
     opening.scrollIntoView({ block: "start" });
+    requestAnimationFrame(() => playMotionNow(opening));
   } else {
     gateError.textContent = "nope 😭 this little scrapbook knows its person";
     password.select();
@@ -40,10 +41,26 @@ giftBox.addEventListener("click", (event) => {
 });
 
 // Music presentation
+const musicSection = $("#music");
+const musicPlayer = $("#musicPlayer");
 $("#musicReveal").addEventListener("click", () => {
   $("#musicFrame").classList.remove("is-hidden");
-  $("#music").classList.add("playing");
+  musicSection.classList.add("music-opened");
   $("#musicReveal").textContent = "song opened ♫";
+});
+
+musicPlayer.addEventListener("load", () => {
+  const message = (payload) => musicPlayer.contentWindow?.postMessage(JSON.stringify(payload), "https://www.youtube.com");
+  message({ event: "listening" });
+  message({ event: "command", func: "addEventListener", args: ["onStateChange"] });
+});
+
+window.addEventListener("message", (event) => {
+  if (event.origin !== "https://www.youtube.com") return;
+  let payload;
+  try { payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data; } catch { return; }
+  if (payload?.event !== "onStateChange") return;
+  musicSection.classList.toggle("playing", Number(payload.info) === 1);
 });
 
 // Surprise
@@ -56,6 +73,7 @@ $("#surpriseButton").addEventListener("click", () => {
 $("#showSixteen").addEventListener("click", () => {
   $("#surpriseNote").classList.add("is-hidden");
   $("#sixteenReveal").classList.remove("is-hidden");
+  playMotionNow($("#sixteenReveal"));
   buildConfetti();
 });
 
@@ -63,6 +81,7 @@ $("#showSixteen").addEventListener("click", () => {
 $("#twistButton").addEventListener("click", () => {
   $("#twistButton").classList.add("is-hidden");
   $("#giftReveal").classList.remove("is-hidden");
+  playMotionNow($("#giftReveal"));
 });
 
 // Memory sky final button
@@ -70,6 +89,7 @@ $("#finalButton").addEventListener("click", () => {
   $("#finale").classList.remove("is-hidden");
   $("#finale").setAttribute("aria-hidden", "false");
   $("#finale").scrollIntoView({ behavior: "smooth", block: "start" });
+  requestAnimationFrame(() => playMotionNow($("#finale")));
   makeCelebrationBurst();
 });
 
@@ -229,12 +249,13 @@ function buildConfetti() {
     p.className = "confetti-piece";
     p.style.left = `${Math.random() * 100}%`;
     p.style.background = colors[i % colors.length];
-    p.style.setProperty("--dur", `${3 + Math.random() * 4}s`);
+    p.style.setProperty("--dur", `${1.3 + Math.random() * .85}s`);
     p.style.setProperty("--rot", `${Math.random() * 180}deg`);
     p.style.setProperty("--drift", `${-80 + Math.random() * 160}px`);
-    p.style.animationDelay = `${-Math.random() * 4}s`;
+    p.style.animationDelay = `${Math.random() * .18}s`;
     field.appendChild(p);
   }
+  window.setTimeout(() => { field.textContent = ""; }, 2600);
 }
 
 function makeCelebrationBurst() {
@@ -242,7 +263,7 @@ function makeCelebrationBurst() {
   for (let i = 0; i < 24; i++) {
     const piece = document.createElement("span");
     piece.textContent = i % 3 === 0 ? "✦" : i % 3 === 1 ? "♡" : "·";
-    piece.style.position = "absolute";
+    piece.className = "celebration-fleck";
     piece.style.left = `${10 + Math.random() * 80}%`;
     piece.style.top = `${5 + Math.random() * 80}%`;
     piece.style.fontSize = `${18 + Math.random() * 24}px`;
@@ -251,4 +272,126 @@ function makeCelebrationBurst() {
     piece.setAttribute("aria-hidden", "true");
     finale.appendChild(piece);
   }
+  window.setTimeout(() => $$(".celebration-fleck", finale).forEach((piece) => piece.remove()), 2100);
+}
+
+// Scroll-triggered scrapbook assembly. Existing content remains visible until every
+// target is registered, so unsupported browsers retain the complete experience.
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function registerReveals(rootSelector, entries) {
+  const root = $(rootSelector);
+  if (!root) return;
+  entries.forEach(([selector, type = "reveal-paper", delay = 0]) => {
+    $$(selector, root).forEach((element, index) => {
+      element.classList.add("reveal", type);
+      element.style.setProperty("--reveal-final", getComputedStyle(element).transform);
+      element.style.setProperty("--reveal-delay", `${delay + index * .1}s`);
+    });
+  });
+}
+
+registerReveals("#gate", [
+  [".gate-paper", "reveal-paper", .04], [".gate-tulip", "reveal-slide-left", .16],
+  [".gate-kitten", "reveal-scale-settle", .26], [".scribble", "reveal-text-line", .36],
+  [".gate h1,.gate-copy", "reveal-text-line", .48], [".gate-form", "reveal-paper", .64]
+]);
+registerReveals("#opening", [
+  [".opening-note", "reveal-paper", .05], [".tape-b", "reveal-tape", .2],
+  [".opening-note p", "reveal-text-line", .32], [".opening-bow,.opening-sparkle", "reveal-scale-settle", .48]
+]);
+registerReveals("#hero", [
+  [".favourite-label", "reveal-paper", .08], [".hero-tulip-left", "reveal-slide-left", .28],
+  [".hero-tulip-right", "reveal-slide-right", .38], [".hero-kitten", "reveal-scale-settle", .52],
+  [".hero-bow", "reveal-scale-settle", .64], [".hero-red-tape", "reveal-tape", .76],
+  [".hero-title", "reveal-text-line", .92], [".hero-date,.hero-ticket", "reveal-stamp", 1.08],
+  [".hero-ink-star", "reveal-doodle", 1.25]
+]);
+registerReveals("#music", [
+  [".record-wrap", "reveal-scale-settle", .04], [".music-card", "reveal-paper", .16],
+  [".tape-c", "reveal-tape", .42], [".music-card .hand-label", "reveal-typewriter", .52],
+  [".music-radio,.music-cassette", "reveal-slide-right", .24]
+]);
+registerReveals("#jokes", [
+  [".eyebrow,.jokes-section h2", "reveal-paper", .03], [".sticky-one", "reveal-slide-left", .22],
+  [".sticky-two", "reveal-slide-right", .37], [".joke-kitten", "reveal-scale-settle", .56],
+  [".joke-heart,.jokes-star", "reveal-doodle", .68], [".jokes-label", "reveal-typewriter", .12]
+]);
+registerReveals("#memories", [
+  [".memory-heading", "reveal-paper", .18], [".letter", "reveal-paper", .05],
+  [".tape-e,.memory-red-tape", "reveal-tape", .34], [".letter-stamp,.memory-ticket", "reveal-stamp", .46],
+  [".letter p", "reveal-text-line", .58], [".letter-signoff", "reveal-text-line", .78],
+  [".memory-label", "reveal-typewriter", .78], [".memory-tulip,.memory-flowers", "reveal-scale-settle", .52]
+]);
+registerReveals("#photos", [
+  [".photos-heading", "reveal-paper", .05], [".photos-film", "reveal-film", .18],
+  [".polaroid", "reveal-polaroid", .32], [".photo-tape", "reveal-tape", .58],
+  [".scratch-note", "reveal-text-line", .72]
+]);
+registerReveals("#giftTease", [
+  [".tease-card", "reveal-paper", .08], [".tease-bow", "reveal-scale-settle", .26],
+  [".gift-ticket,.gift-news", "reveal-stamp", .34], [".gift-red-tape", "reveal-tape", .46]
+]);
+registerReveals("#surprise", [
+  [".surprise-note", "reveal-paper", .06], [".sixteen-news", "reveal-paper", .04],
+  [".sixteen-date", "reveal-stamp", .18], [".sixteen-cake", "reveal-scale-settle", .32],
+  [".sixteen-bow,.sixteen-star", "reveal-doodle", .46], [".sixteen-reveal h2", "reveal-scale-settle", .58]
+]);
+registerReveals("#goodThings", [
+  [".good-things>.hand-label,.good-things>h2", "reveal-paper", .04], [".good-list article", "reveal-paper", .24],
+  [".missing-numbers", "reveal-text-line", .88], [".you-card", "reveal-scale-settle", 1.02],
+  [".you-heart", "reveal-doodle", 1.18]
+]);
+registerReveals("#twist", [
+  [".twist-card", "reveal-paper", .08], [".ribbon-button", "reveal-tape", .32],
+  [".twist-seal", "reveal-stamp", .4], [".gift-reveal", "reveal-paper", .02]
+]);
+registerReveals("#memorySky", [
+  [".sky-film", "reveal-film", .08], [".sky-note", "reveal-text-line", .22],
+  [".sky-content", "reveal-scale-settle", .18]
+]);
+registerReveals("#finale", [
+  [".final-paper", "reveal-paper", .08], [".final-left", "reveal-slide-left", .25],
+  [".final-right", "reveal-slide-right", .34], [".final-bow,.final-cake", "reveal-scale-settle", .45],
+  [".final-paper h2", "reveal-text-line", .62], [".final-heart", "reveal-doodle", .92]
+]);
+
+function typeVintageLabel(element) {
+  if (element.dataset.typed || prefersReducedMotion.matches) return;
+  const text = element.textContent.trim();
+  if (!text) return;
+  element.dataset.typed = "true";
+  element.textContent = "";
+  let index = 0;
+  const timer = window.setInterval(() => {
+    element.textContent += text[index++] || "";
+    if (index >= text.length) {
+      window.clearInterval(timer);
+      element.classList.add("typed-complete");
+    }
+  }, 26);
+}
+
+function playMotionNow(root) {
+  if (!root) return;
+  root.classList.add("is-inview");
+  $$(".reveal-typewriter", root).forEach((element) => {
+    const delay = Math.round(parseFloat(element.style.getPropertyValue("--reveal-delay")) * 1000) || 0;
+    window.setTimeout(() => typeVintageLabel(element), delay + 170);
+  });
+}
+
+document.documentElement.classList.add("motion-ready");
+playMotionNow(gate);
+if ("IntersectionObserver" in window && !prefersReducedMotion.matches) {
+  const sectionObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      playMotionNow(entry.target);
+      observer.unobserve(entry.target);
+    });
+  }, { threshold: .16, rootMargin: "0px 0px -8%" });
+  $$("#hero,#music,#jokes,#memories,#photos,#giftTease,#surprise,#goodThings,#twist,#memorySky,#finale").forEach((section) => sectionObserver.observe(section));
+} else {
+  $$(".reveal").forEach((element) => element.classList.add("is-inview"));
 }
