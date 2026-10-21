@@ -84,14 +84,264 @@ $("#twistButton").addEventListener("click", () => {
   playMotionNow($("#giftReveal"));
 });
 
+// Private final-note form. It can only insert through Supabase; it never reads notes.
+const notesSection = $("#notes");
+const noteForm = $("#noteForm");
+const noteMessage = $("#noteMessage");
+const noteSubmit = $("#noteSubmit");
+const noteStatus = $("#noteStatus");
+const noteSuccess = $("#noteSuccess");
+let noteSubmitting = false;
+let noteCompleted = false;
+
+function setNoteStatus(message, state = "") {
+  noteStatus.textContent = message;
+  if (state) noteStatus.dataset.state = state;
+  else delete noteStatus.dataset.state;
+}
+
+function getNotesConfig() {
+  const config = window.BIRTHDAY_NOTES_CONFIG || {};
+  const supabaseUrl = typeof config.supabaseUrl === "string" ? config.supabaseUrl.trim().replace(/\/$/, "") : "";
+  const publishableKey = typeof config.publishableKey === "string" ? config.publishableKey.trim() : "";
+  if (!supabaseUrl || !publishableKey) return null;
+  try {
+    const parsed = new URL(supabaseUrl);
+    if (parsed.protocol !== "https:") return null;
+  } catch {
+    return null;
+  }
+  return { supabaseUrl, publishableKey };
+}
+
+function resizeNoteField() {
+  noteMessage.style.height = "auto";
+  const maximumHeight = 480;
+  const nextHeight = Math.min(noteMessage.scrollHeight, maximumHeight);
+  noteMessage.style.height = `${nextHeight}px`;
+  noteMessage.style.overflowY = noteMessage.scrollHeight > maximumHeight ? "auto" : "hidden";
+}
+
+const notesConfig = getNotesConfig();
+if (!notesConfig) {
+  console.warn("[birthday notes] Supabase is not configured. Add the Project URL and browser-safe publishable key in supabase-notes-config.js.");
+  noteSubmit.disabled = true;
+  setNoteStatus("This note page is not ready to send just yet.", "error");
+}
+
+noteMessage.addEventListener("input", resizeNoteField);
+requestAnimationFrame(resizeNoteField);
+
+noteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (noteSubmitting || noteCompleted) return;
+
+  const message = noteMessage.value.trim();
+  if (!message) {
+    setNoteStatus("Please write a little note before sending it ♡", "error");
+    noteMessage.focus();
+    return;
+  }
+
+  if (!notesConfig) {
+    setNoteStatus("This note page is not ready to send just yet.", "error");
+    return;
+  }
+
+  noteSubmitting = true;
+  noteForm.setAttribute("aria-busy", "true");
+  noteSubmit.disabled = true;
+  noteSubmit.textContent = "Sending...";
+  setNoteStatus("Sending your note...", "sending");
+
+  try {
+    const response = await fetch(`${notesConfig.supabaseUrl}/rest/v1/birthday_notes`, {
+      method: "POST",
+      headers: {
+        apikey: notesConfig.publishableKey,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify({ message })
+    });
+
+    if (!response.ok) throw new Error(`Supabase insert failed with status ${response.status}`);
+
+    noteCompleted = true;
+    noteForm.classList.add("is-hidden");
+    noteSuccess.classList.remove("is-hidden");
+    setNoteStatus("", "success");
+    playMotionNow(noteSuccess);
+  } catch (error) {
+    console.error("[birthday notes] Insert failed.", error);
+    noteSubmitting = false;
+    noteForm.removeAttribute("aria-busy");
+    noteSubmit.disabled = false;
+    noteSubmit.textContent = "Try again ♡";
+    setNoteStatus("Couldn't send it just yet. Your note is still here — please try again ♡", "error");
+  }
+});
+
 // Memory sky final button
 $("#finalButton").addEventListener("click", () => {
   $("#finale").classList.remove("is-hidden");
   $("#finale").setAttribute("aria-hidden", "false");
+  notesSection.classList.remove("is-hidden");
+  notesSection.setAttribute("aria-hidden", "false");
   $("#finale").scrollIntoView({ behavior: "smooth", block: "start" });
-  requestAnimationFrame(() => playMotionNow($("#finale")));
+  requestAnimationFrame(() => {
+    playMotionNow($("#finale"));
+    playMotionNow(notesSection);
+  });
   makeCelebrationBurst();
 });
+
+// Required friendship checkpoint before Memory Sky. State intentionally resets on reload.
+const loveCheckpoint = $("#loveCheckpoint");
+const loveArena = $("#loveArena");
+const loveYes = $("#loveYes");
+const loveNo = $("#loveNo");
+const loveReaction = $("#loveReaction");
+const loveSuccess = $("#loveSuccess");
+const loveConfetti = $("#loveConfetti");
+const memorySky = $("#memorySky");
+let loveCheckpointComplete = false;
+let noCoordinateReady = false;
+let lastNoPosition = null;
+let lastNoPointerTime = 0;
+let noAttempts = 0;
+
+function relativeRect(element, parentRect) {
+  const rect = element.getBoundingClientRect();
+  return { left: rect.left - parentRect.left, top: rect.top - parentRect.top, width: rect.width, height: rect.height };
+}
+
+function prepareNoCoordinates() {
+  if (noCoordinateReady) return;
+  const arenaRect = loveArena.getBoundingClientRect();
+  const position = relativeRect(loveNo, arenaRect);
+  loveNo.style.transition = "none";
+  loveNo.style.left = "0px";
+  loveNo.style.top = "0px";
+  loveNo.style.bottom = "auto";
+  loveNo.style.transform = `translate3d(${position.left}px,${position.top}px,0)`;
+  loveNo.getBoundingClientRect();
+  loveNo.style.transition = "";
+  lastNoPosition = position;
+  noCoordinateReady = true;
+}
+
+function overlaps(rect, target, padding = 14) {
+  return rect.left < target.left + target.width + padding && rect.left + rect.width + padding > target.left && rect.top < target.top + target.height + padding && rect.top + rect.height + padding > target.top;
+}
+
+function dodgeNoButton() {
+  if (loveCheckpointComplete) return;
+  prepareNoCoordinates();
+  const arenaRect = loveArena.getBoundingClientRect();
+  const yesRect = relativeRect(loveYes, arenaRect);
+  const buttonRect = relativeRect(loveNo, arenaRect);
+  const padding = Math.max(8, Math.min(18, arenaRect.width * .05));
+  const maxX = Math.max(padding, arenaRect.width - buttonRect.width - padding);
+  const maxY = Math.max(padding, arenaRect.height - buttonRect.height - padding);
+  let next = null;
+
+  for (let attempt = 0; attempt < 36; attempt++) {
+    const candidate = {
+      left: padding + Math.random() * (maxX - padding),
+      top: padding + Math.random() * (maxY - padding),
+      width: buttonRect.width,
+      height: buttonRect.height
+    };
+    const farEnough = !lastNoPosition || Math.hypot(candidate.left - lastNoPosition.left, candidate.top - lastNoPosition.top) > Math.min(58, arenaRect.width * .23);
+    if (!overlaps(candidate, yesRect) && farEnough) { next = candidate; break; }
+  }
+  next ||= { left: padding, top: padding, width: buttonRect.width, height: buttonRect.height };
+  const rotation = Math.round(-8 + Math.random() * 16);
+  loveNo.style.transform = `translate3d(${next.left}px,${next.top}px,0) rotate(${rotation}deg)`;
+  loveNo.classList.remove("is-dodging");
+  requestAnimationFrame(() => loveNo.classList.add("is-dodging"));
+  lastNoPosition = next;
+  noAttempts++;
+  const reactions = ["nice try 😭", "nope 🎀", "still trying? 😭", "there is literally another button..."];
+  loveReaction.textContent = reactions[Math.min(noAttempts - 1, reactions.length - 1)];
+}
+
+function unlockMemorySky() {
+  memorySky.classList.remove("is-locked");
+  memorySky.setAttribute("aria-hidden", "false");
+  memorySky.removeAttribute("inert");
+}
+
+function routeToLoveCheckpoint(event) {
+  if (loveCheckpointComplete) return;
+  event?.preventDefault();
+  if (location.hash !== "#loveCheckpoint") history.replaceState(null, "", "#loveCheckpoint");
+  if (!experience.classList.contains("is-hidden")) loveCheckpoint.scrollIntoView({ behavior: "smooth", block: "start" });
+  loveCheckpoint.classList.remove("needs-attention");
+  requestAnimationFrame(() => loveCheckpoint.classList.add("needs-attention"));
+}
+
+function guardCheckpointHash() {
+  if (!loveCheckpointComplete && /#(?:memorySky|finale)$/i.test(location.hash)) routeToLoveCheckpoint();
+}
+
+loveNo.addEventListener("pointerenter", (event) => {
+  if (event.pointerType === "mouse") dodgeNoButton();
+});
+loveNo.addEventListener("pointerdown", (event) => {
+  if (loveCheckpointComplete) return;
+  event.preventDefault();
+  lastNoPointerTime = performance.now();
+  dodgeNoButton();
+});
+loveNo.addEventListener("click", (event) => {
+  if (loveCheckpointComplete) return;
+  event.preventDefault();
+  if (performance.now() - lastNoPointerTime > 450) dodgeNoButton();
+});
+loveNo.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  dodgeNoButton();
+});
+
+loveYes.addEventListener("click", () => {
+  if (loveCheckpointComplete) return;
+  loveCheckpointComplete = true;
+  loveNo.disabled = true;
+  loveCheckpoint.classList.add("is-complete");
+  unlockMemorySky();
+  loveSuccess.classList.remove("is-hidden");
+  playMotionNow(loveSuccess);
+  buildLoveConfetti();
+  window.setTimeout(() => $("#loveContinue")?.focus({ preventScroll: true }), 420);
+});
+
+$("#loveContinue").addEventListener("click", () => {
+  if (loveCheckpointComplete) memorySky.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+$$('a[href="#memorySky"],a[href="#finale"]').forEach((link) => link.addEventListener("click", routeToLoveCheckpoint));
+window.addEventListener("hashchange", guardCheckpointHash);
+requestAnimationFrame(guardCheckpointHash);
+
+function buildLoveConfetti() {
+  if (loveConfetti.children.length) return;
+  const colors = ["#f8e089", "#8fbba9", "#fff5e6", "#d66f8e", "#ef9c77", "#b9aed3"];
+  for (let i = 0; i < 38; i++) {
+    const piece = document.createElement("i");
+    piece.style.left = `${18 + Math.random() * 64}%`;
+    piece.style.background = colors[i % colors.length];
+    piece.style.setProperty("--love-duration", `${1.35 + Math.random() * .85}s`);
+    piece.style.setProperty("--love-delay", `${Math.random() * .18}s`);
+    piece.style.setProperty("--love-drift", `${-130 + Math.random() * 260}px`);
+    piece.style.setProperty("--love-rise", `${80 + Math.random() * 155}px`);
+    piece.style.setProperty("--love-rotate", `${-200 + Math.random() * 400}deg`);
+    loveConfetti.appendChild(piece);
+  }
+  window.setTimeout(() => { loveConfetti.textContent = ""; }, 2500);
+}
 
 // Scratch card implementation
 function setupScratchCard(canvas) {
@@ -233,8 +483,6 @@ function buildStars() {
     s.style.left = `${Math.random() * 100}%`;
     s.style.top = `${Math.random() * 100}%`;
     s.style.setProperty("--s", `${Math.random() * 3.5 + 1.5}px`);
-    s.style.setProperty("--d", `${Math.random() * 2.7 + 1.4}s`);
-    s.style.animationDelay = `${Math.random() * 3}s`;
     starField.appendChild(s);
   }
 }
@@ -292,93 +540,66 @@ function registerReveals(rootSelector, entries) {
 }
 
 registerReveals("#gate", [
-  [".gate-paper", "reveal-paper", .04], [".gate-tulip", "reveal-slide-left", .16],
-  [".gate-kitten", "reveal-scale-settle", .26], [".scribble", "reveal-text-line", .36],
+  [".gate-paper", "reveal-paper", .04], [".scribble", "reveal-text-line", .36],
   [".gate h1,.gate-copy", "reveal-text-line", .48], [".gate-form", "reveal-paper", .64]
 ]);
 registerReveals("#opening", [
   [".opening-note", "reveal-paper", .05], [".tape-b", "reveal-tape", .2],
-  [".opening-note p", "reveal-text-line", .32], [".opening-bow,.opening-sparkle", "reveal-scale-settle", .48]
+  [".opening-note p", "reveal-text-line", .32]
 ]);
 registerReveals("#hero", [
-  [".favourite-label", "reveal-paper", .08], [".hero-tulip-left", "reveal-slide-left", .28],
-  [".hero-tulip-right", "reveal-slide-right", .38], [".hero-kitten", "reveal-scale-settle", .52],
-  [".hero-bow", "reveal-scale-settle", .64], [".hero-red-tape", "reveal-tape", .76],
-  [".hero-title", "reveal-text-line", .92], [".hero-date,.hero-ticket", "reveal-stamp", 1.08],
-  [".hero-ink-star", "reveal-doodle", 1.25]
+  [".favourite-label", "reveal-paper", .08], [".hero-title", "reveal-text-line", .92],
+  [".hero-date", "reveal-stamp", 1.08]
 ]);
 registerReveals("#music", [
-  [".record-wrap", "reveal-scale-settle", .04], [".music-card", "reveal-paper", .16],
-  [".tape-c", "reveal-tape", .42], [".music-card .hand-label", "reveal-typewriter", .52],
-  [".music-radio,.music-cassette", "reveal-slide-right", .24]
+  [".music-card", "reveal-paper", .16],
+  [".tape-c", "reveal-tape", .42], [".music-card .hand-label", "reveal-text-line", .52]
 ]);
 registerReveals("#jokes", [
   [".eyebrow,.jokes-section h2", "reveal-paper", .03], [".sticky-one", "reveal-slide-left", .22],
-  [".sticky-two", "reveal-slide-right", .37], [".joke-kitten", "reveal-scale-settle", .56],
-  [".joke-heart,.jokes-star", "reveal-doodle", .68], [".jokes-label", "reveal-typewriter", .12]
+  [".sticky-two", "reveal-slide-right", .37]
 ]);
 registerReveals("#memories", [
   [".memory-heading", "reveal-paper", .18], [".letter", "reveal-paper", .05],
-  [".tape-e,.memory-red-tape", "reveal-tape", .34], [".letter-stamp,.memory-ticket", "reveal-stamp", .46],
-  [".letter p", "reveal-text-line", .58], [".letter-signoff", "reveal-text-line", .78],
-  [".memory-label", "reveal-typewriter", .78], [".memory-tulip,.memory-flowers", "reveal-scale-settle", .52]
+  [".tape-e", "reveal-tape", .34], [".letter-stamp", "reveal-stamp", .46],
+  [".letter p", "reveal-text-line", .58], [".letter-signoff", "reveal-text-line", .78]
 ]);
 registerReveals("#photos", [
-  [".photos-heading", "reveal-paper", .05], [".photos-film", "reveal-film", .18],
+  [".photos-heading", "reveal-paper", .05],
   [".polaroid", "reveal-polaroid", .32], [".photo-tape", "reveal-tape", .58],
   [".scratch-note", "reveal-text-line", .72]
 ]);
 registerReveals("#giftTease", [
-  [".tease-card", "reveal-paper", .08], [".tease-bow", "reveal-scale-settle", .26],
-  [".gift-ticket,.gift-news", "reveal-stamp", .34], [".gift-red-tape", "reveal-tape", .46]
+  [".tease-card", "reveal-paper", .08]
 ]);
 registerReveals("#surprise", [
-  [".surprise-note", "reveal-paper", .06], [".sixteen-news", "reveal-paper", .04],
-  [".sixteen-date", "reveal-stamp", .18], [".sixteen-cake", "reveal-scale-settle", .32],
-  [".sixteen-bow,.sixteen-star", "reveal-doodle", .46], [".sixteen-reveal h2", "reveal-scale-settle", .58]
+  [".surprise-note", "reveal-paper", .06], [".sixteen-reveal h2", "reveal-scale-settle", .58]
 ]);
 registerReveals("#goodThings", [
   [".good-things>.hand-label,.good-things>h2", "reveal-paper", .04], [".good-list article", "reveal-paper", .24],
-  [".missing-numbers", "reveal-text-line", .88], [".you-card", "reveal-scale-settle", 1.02],
-  [".you-heart", "reveal-doodle", 1.18]
+  [".missing-numbers", "reveal-text-line", .88], [".you-card", "reveal-scale-settle", 1.02]
 ]);
 registerReveals("#twist", [
   [".twist-card", "reveal-paper", .08], [".ribbon-button", "reveal-tape", .32],
-  [".twist-seal", "reveal-stamp", .4], [".gift-reveal", "reveal-paper", .02]
+  [".gift-reveal", "reveal-paper", .02]
 ]);
-registerReveals("#memorySky", [
-  [".sky-film", "reveal-film", .08], [".sky-note", "reveal-text-line", .22],
-  [".sky-content", "reveal-scale-settle", .18]
+registerReveals("#loveCheckpoint", [
+  [".love-card", "reveal-paper", .06], [".love-card h2", "reveal-scale-settle", .48], [".love-yes", "reveal-paper", .62],
+  [".love-no", "reveal-paper", .74], [".love-success", "reveal-paper", .04],
+  ["#loveContinue", "reveal-text-line", .48]
 ]);
+registerReveals("#memorySky", [[".sky-content", "reveal-scale-settle", .18]]);
 registerReveals("#finale", [
-  [".final-paper", "reveal-paper", .08], [".final-left", "reveal-slide-left", .25],
-  [".final-right", "reveal-slide-right", .34], [".final-bow,.final-cake", "reveal-scale-settle", .45],
-  [".final-paper h2", "reveal-text-line", .62], [".final-heart", "reveal-doodle", .92]
+  [".final-paper", "reveal-paper", .08],
+  [".final-paper h2,.final-sign", "reveal-text-line", .62]
 ]);
-
-function typeVintageLabel(element) {
-  if (element.dataset.typed || prefersReducedMotion.matches) return;
-  const text = element.textContent.trim();
-  if (!text) return;
-  element.dataset.typed = "true";
-  element.textContent = "";
-  let index = 0;
-  const timer = window.setInterval(() => {
-    element.textContent += text[index++] || "";
-    if (index >= text.length) {
-      window.clearInterval(timer);
-      element.classList.add("typed-complete");
-    }
-  }, 26);
-}
+registerReveals("#notes", [
+  [".notes-paper", "reveal-paper", .08], [".notes-paper h2,.notes-intro", "reveal-text-line", .28]
+]);
 
 function playMotionNow(root) {
   if (!root) return;
   root.classList.add("is-inview");
-  $$(".reveal-typewriter", root).forEach((element) => {
-    const delay = Math.round(parseFloat(element.style.getPropertyValue("--reveal-delay")) * 1000) || 0;
-    window.setTimeout(() => typeVintageLabel(element), delay + 170);
-  });
 }
 
 document.documentElement.classList.add("motion-ready");
@@ -391,7 +612,7 @@ if ("IntersectionObserver" in window && !prefersReducedMotion.matches) {
       observer.unobserve(entry.target);
     });
   }, { threshold: .16, rootMargin: "0px 0px -8%" });
-  $$("#hero,#music,#jokes,#memories,#photos,#giftTease,#surprise,#goodThings,#twist,#memorySky,#finale").forEach((section) => sectionObserver.observe(section));
+  $$("#hero,#music,#jokes,#memories,#photos,#giftTease,#surprise,#goodThings,#twist,#loveCheckpoint,#memorySky,#finale,#notes").forEach((section) => sectionObserver.observe(section));
 } else {
   $$(".reveal").forEach((element) => element.classList.add("is-inview"));
 }
